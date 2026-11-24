@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Black Friday Command Center</title>
+<style>
+  :root{--bg:#0b0f17;--panel:#121826;--panel2:#171f31;--line:#243049;--txt:#e6ecf7;--mut:#8b9ab8;
+        --blue:#4aa3ff;--green:#3ddc97;--amber:#ffb84a;--red:#ff5d6c;--violet:#a98bff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 -apple-system,"Segoe UI",system-ui,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--panel)}
+  h1{font-size:18px;margin:0;letter-spacing:.3px}
+  .badge{font-size:11px;padding:3px 8px;border-radius:99px;border:1px solid var(--amber);color:var(--amber)}
+  .badge.live{border-color:var(--green);color:var(--green)}
+  .spacer{flex:1}
+  button{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px 14px;border-radius:8px;font:inherit;cursor:pointer}
+  button:hover{border-color:var(--blue)}
+  button.hot{background:#3a1820;border-color:var(--red)}
+  button.on{background:#1d3a2d;border-color:var(--green)}
+  main{padding:16px 20px;display:grid;gap:14px}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .card h2{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.8px}
+  .kpi .v{font-size:30px;font-weight:700;font-variant-numeric:tabular-nums}
+  .kpi .s{font-size:12px;color:var(--mut)}
+  .grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px}
+  .col{display:grid;gap:14px;align-content:start;min-width:0}
+  .card{min-width:0}
+  .cv{position:relative;width:100%;overflow:hidden;border-radius:8px;background:#0e1422}
+  canvas{position:absolute;left:0;top:0;display:block}
+  .sku{display:grid;grid-template-columns:130px 1fr 54px;gap:8px;align-items:center;margin:6px 0;font-size:13px}
+  .bar{height:10px;background:#0e1422;border-radius:6px;overflow:hidden}
+  .bar i{display:block;height:100%;background:var(--green);transition:width .3s,background .3s}
+  .sku .n{text-align:right;font-variant-numeric:tabular-nums;color:var(--mut)}
+  .sku.low .bar i{background:var(--amber)} .sku.crit .bar i{background:var(--red)}
+  .sku.flash{animation:fl .6s}
+  @keyframes fl{0%{background:#2a2433}100%{background:transparent}}
+  #advice{max-height:250px;overflow:auto}
+  .adv{border-left:3px solid var(--violet);padding:6px 10px;margin:8px 0;background:var(--panel2);border-radius:0 8px 8px 0;font-size:13px;animation:fl .8s}
+  .adv.HIGH{border-color:var(--red)} .adv.MED{border-color:var(--amber)} .adv.LOW{border-color:var(--blue)}
+  .adv b{display:block;font-size:11px;letter-spacing:.6px;color:var(--mut)}
+  .pipe{display:flex;align-items:stretch;gap:6px;flex-wrap:wrap}
+  .node{flex:1 1 0;min-width:0;font-size:12px;overflow-wrap:anywhere;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 8px;text-align:center}
+  .node.topic{border-radius:99px;border-color:#2c5a85}
+  .node.job{border-color:#6a4aa8;background:#1b1633}
+  .node small{display:block;color:var(--mut);font-size:11px}
+  .node .c{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums}
+  .node.pulse{animation:pl .35s}
+  @keyframes pl{0%{box-shadow:0 0 0 0 rgba(74,163,255,.9)}100%{box-shadow:0 0 0 10px rgba(74,163,255,0)}}
+  .arrow{align-self:center;color:var(--mut)}
+  #feed{font:12px/1.5 ui-monospace,Menlo,monospace;height:190px;overflow:hidden;color:#b8c4dd}
+  #feed div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #feed .t{color:var(--blue)} #feed .a{color:var(--red)}
+  #banner{display:none;padding:10px 20px;background:#3a1820;border-bottom:1px solid var(--red);color:#ffd5d9;font-weight:600}
+  body.present main{zoom:1.25}
+  body.present .kpi .v{font-size:38px}
+  footer{padding:14px;text-align:center;color:var(--mut);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Black Friday Command Center</h1>
+  <span class="badge" id="mode">SIMULATED PREVIEW &middot; in-browser, no Kafka</span>
+  <span class="spacer"></span>
+  <button id="bSurge">Flash sale surge</button>
+  <button id="bViral">Viral product</button>
+  <button id="bPresent">Present</button>
+  <button id="bReset">Reset</button>
+</header>
+<div id="banner"></div>
+<main>
+  <section class="kpis">
+    <div class="card kpi"><h2>Revenue / min</h2><div class="v" id="kRev">0</div><div class="s" id="kRevS">&nbsp;</div></div>
+    <div class="card kpi"><h2>Orders / min</h2><div class="v" id="kOrd">0</div><div class="s">across 12 stores + web</div></div>
+    <div class="card kpi"><h2>Events / sec</h2><div class="v" id="kEps">0</div><div class="s">into Kafka topics</div></div>
+    <div class="card kpi"><h2>Carts recovered</h2><div class="v" id="kRec">0</div><div class="s">event-driven nudges</div></div>
+    <div class="card kpi"><h2>Anomalies</h2><div class="v" id="kAnom">0</div><div class="s">flagged this session</div></div>
+  </section>
+
+  <section class="grid">
+    <div class="col">
+      <div class="card"><h2>Orders per window &middot; forecast band &middot; anomalies</h2><div class="cv" style="height:230px"><canvas id="chart"></canvas></div></div>
+      <div class="card"><h2>Store network &middot; live orders</h2><div class="cv" style="height:260px"><canvas id="map"></canvas></div></div>
+    </div>
+    <div class="col">
+      <div class="card"><h2>Live inventory</h2><div id="skus"></div></div>
+      <div class="card"><h2>Advisor <span class="badge" style="margin-left:6px">rule-based stand-in, not an LLM</span></h2><div id="advice"></div></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Streaming pipeline (what runs on Confluent Cloud in live mode)</h2>
+    <div class="pipe" id="pipe"></div>
+  </section>
+
+  <section class="card"><h2>Kafka event feed</h2><div id="feed"></div></section>
+</main>
+<footer>All numbers on this page are generated in your browser. Nothing here is real retail data.</footer>
+<script src="app.js?v=3"></script>
+</body>
+</html>
